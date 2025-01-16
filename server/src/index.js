@@ -4,6 +4,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { connectMongoDB } = require('./database/Mongoose');
 const { connectMySql } = require('./database/MySql');
+const userRouter = require('./router/user')
 
 // Connect to databases
 connectMongoDB();
@@ -18,6 +19,8 @@ app.use(cors({
   credentials: true, // Allow cookies
 }));
 app.use(express.raw({ type: 'application/json' }));
+
+app.use(userRouter)
 
 // Set port with fallback if the environment variable is not set
 const PORT = process.env.MY_PORT || 6000;
