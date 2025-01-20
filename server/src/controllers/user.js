@@ -44,7 +44,7 @@ const userLogin = async (req, res) => {
         user_id: user.user_id,
         username: user.username,
         email: user.email,
-        phone_number: user.phone_number,
+        phone_number_number: user.phone_number,
         role: user.role,
       },
     });
@@ -84,16 +84,10 @@ const userRegister = async (req, res) => {
       [username, email, hashedPassword, phone_number, role || "customer"]
     );
 
-    // Generate JWT
-    const token = jwt.sign(
-      { user_id: insertResult.insertId, username, email, role: role || "customer" },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    console.log(res.body);
 
     res.status(201).json({
       message: "User registered successfully.",
-      token,
       user: {
         user_id: insertResult.insertId,
         username,
@@ -106,6 +100,5 @@ const userRegister = async (req, res) => {
     console.error("Error during user registration:", err);
     res.status(500).json({ message: "Internal server error.", error: err.message });
   }
-};
-
+}
 module.exports = {userLogin,userRegister}

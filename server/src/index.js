@@ -1,10 +1,10 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { connectMongoDB } = require('./database/Mongoose');
 const { connectMySql } = require('./database/MySql');
 const userRouter = require('./router/user')
+require('dotenv').config();
 
 // Connect to databases
 connectMongoDB();
