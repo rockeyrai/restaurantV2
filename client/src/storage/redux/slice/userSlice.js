@@ -1,14 +1,18 @@
+// userSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
-// Login async action
+// loginUser async action
 export const loginUser = createAsyncThunk(
-  "user/login",
+  "/login",
   async (loginData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_FRONTEND_API}/login`, loginData); // Replace with your API endpoint
+      console.log("Login data:", loginData); // Debugging input
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_FRONTEND_API}/login`, loginData);
       return response.data; // Assuming the API returns token and user info
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Login failed");
+      console.error("API Error:", error.response?.data || error.message); // Log the error details
+      return rejectWithValue(error.response?.data?.message || "Login failed");
     }
   }
 );
@@ -40,7 +44,7 @@ const userSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload || "Login failed";
+        state.error = action.payload || "Login failed"; // Use fallback error message
       });
   },
 });

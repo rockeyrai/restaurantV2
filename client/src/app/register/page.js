@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import React, { useState } from "react";
 import axios from "axios";
 
@@ -22,15 +22,26 @@ const RegisterPage = () => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
     try {
-      const userData=JSON.stringify(formData)
-      alert(userData)
+      const userData = JSON.stringify(formData);
+      alert(userData);
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_FRONTEND_API}/register`, // Environment variable without 'NEXT_PUBLIC' duplication
         formData
       );
+
       console.log("Registration successful");
       setSuccess(true);
+
+      // Reset form data after successful submission
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+        phone_number: "",
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     } finally {
