@@ -39,8 +39,10 @@ const userSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.userInfo = action.payload.user; // Adjust based on API response
-        state.token = action.payload.token;  // Adjust based on API response
+        // Only save specific fields (excluding password)
+        const { username, id, token, role, phone_number } = action.payload.user;
+        state.userInfo = { username, id, role, phone_number };
+        state.token = action.payload.token; // Assuming the token is returned in the response
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
