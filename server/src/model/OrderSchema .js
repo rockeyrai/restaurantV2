@@ -3,12 +3,20 @@ const Schema = mongoose.Schema;
 
 // Orders Schema (for customer orders, linking to the menu items and table in MySQL)
 const OrderSchema = new Schema({
-  user_id: { type: Schema.Types.ObjectId, ref: 'Users', required: true },
+  user_id: { type: Number, required: true }, // Change ObjectId to Number
   table_id: { type: Number, required: true },  // MySQL table ID (from Tables table)
   items: [{
-    menu_item_id: { type: Number, required: true },  // MySQL menu_item_id (from Menu table)
-    quantity: { type: Number, required: true }
-  }],
+    menu_item_id: { type: Number, required: true },
+    quantity: { 
+      type: Number, 
+      required: true, 
+      validate: {
+        validator: Number.isInteger,
+        message: "Quantity must be an integer",
+      },
+      min: 1
+    }
+  }],  
   total_cost: { type: Number, required: true },
   status: { type: String, enum: ['in_progress', 'completed', 'cancelled'], default: 'in_progress' },
   created_at: { type: Date, default: Date.now },
