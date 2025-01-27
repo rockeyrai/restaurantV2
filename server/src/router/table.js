@@ -4,6 +4,6 @@ const sessionMiddleware = require('../middleware/sessionMiddleware');
 const router = express.Router();
 
 router.get('/table', checkTable)
-router.post('/reserve',sessionMiddleware, reserveTable)
+router.post('/reserve', reserveTable)
 
 module.exports = router
