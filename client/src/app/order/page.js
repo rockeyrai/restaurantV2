@@ -3,51 +3,48 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './Menu.css';
 import { getMenuFromCache, saveMenuToCache } from '@/storage/CacheAPI/menu';
+import { getReservedTablesFromDB } from '@/storage/IndexedDB/table'; // Import the function
+import { useSelector } from 'react-redux';
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [filteredMenuItems, setFilteredMenuItems] = useState([]);
-  const [cart, setCart] = useState([]); // State for the cart
+  const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [availability, setAvailability] = useState(null); // null = All, true = Available, false = Unavailable
+  const [availability, setAvailability] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
-  const [hasOffer, setHasOffer] = useState(null); // null = All, true = With Offer, false = Without Offer
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 100 }); // Default price range
-  const [maxPrice, setMaxPrice] = useState(100); // Dynamic max price from items
+  const [hasOffer, setHasOffer] = useState(null);
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
+  const [maxPrice, setMaxPrice] = useState(100);
+  const user_id = useSelector((state) => state.user?.userInfo?.user_id);
+
 
   useEffect(() => {
     const fetchMenuData = async () => {
       try {
-        // Try to get the menu from cache
         const cachedMenu = await getMenuFromCache();
         if (cachedMenu && Array.isArray(cachedMenu)) {
-          console.log("Cached Menu Data:", cachedMenu);
           setMenuItems(cachedMenu);
           setFilteredMenuItems(cachedMenu);
           setMaxPrice(Math.ceil(Math.max(...cachedMenu.map((item) => parseFloat(item.final_price || 0)))));
           setPriceRange({ min: 0, max: Math.ceil(Math.max(...cachedMenu.map((item) => parseFloat(item.final_price || 0)))) });
           setLoading(false);
         } else {
-          // If not found in cache or invalid data, fetch from API
           const response = await axios.get(`${process.env.NEXT_PUBLIC_FRONTEND_API}/menu`);
           const items = response.data.menuItems || [];
   
-          // Set the fetched data to state and cache it
           setMenuItems(items);
           setFilteredMenuItems(items);
           setMaxPrice(Math.ceil(Math.max(...items.map((item) => parseFloat(item.final_price || 0)))));
           setPriceRange({ min: 0, max: Math.ceil(Math.max(...items.map((item) => parseFloat(item.final_price || 0)))) });
-          
-          // Save to cache
-          await saveMenuToCache(items);
   
+          await saveMenuToCache(items);
           setLoading(false);
         }
       } catch (error) {
-        console.error("Error fetching menu data:", error);
         setError("Failed to fetch menu data");
         setLoading(false);
       }
@@ -57,34 +54,13 @@ const Menu = () => {
   }, []);
 
   useEffect(() => {
-    // Filter menu items based on selected filters
     const filtered = menuItems.filter((item) => {
-      // Availability filter
-      if (availability !== null && item.availability !== (availability ? 1 : 0)) {
-        return false;
-      }
-      // Category filter
-      if (selectedCategory && item.category_name !== selectedCategory) {
-        return false;
-      }
-      // Tag filter
-      if (selectedTag && (!item.tags || !item.tags.split(',').includes(selectedTag))) {
-        return false;
-      }
-      // Offer filter
-      if (
-        hasOffer !== null &&
-        (hasOffer
-          ? parseFloat(item.discount_percentage) === 0
-          : parseFloat(item.discount_percentage) > 0)
-      ) {
-        return false;
-      }
-      // Price range filter
+      if (availability !== null && item.availability !== (availability ? 1 : 0)) return false;
+      if (selectedCategory && item.category_name !== selectedCategory) return false;
+      if (selectedTag && (!item.tags || !item.tags.split(',').includes(selectedTag))) return false;
+      if (hasOffer !== null && (hasOffer ? parseFloat(item.discount_percentage) === 0 : parseFloat(item.discount_percentage) > 0)) return false;
       const price = parseFloat(item.final_price);
-      if (price < priceRange.min || price > priceRange.max) {
-        return false;
-      }
+      if (price < priceRange.min || price > priceRange.max) return false;
       return true;
     });
 
@@ -94,13 +70,9 @@ const Menu = () => {
   const addToCart = (item) => {
     const existingItem = cart.find((cartItem) => cartItem.menu_item_id === item.menu_item_id);
     if (existingItem) {
-      setCart(
-        cart.map((cartItem) =>
-          cartItem.menu_item_id === item.menu_item_id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        )
-      );
+      setCart(cart.map((cartItem) =>
+        cartItem.menu_item_id === item.menu_item_id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
+      ));
     } else {
       setCart([...cart, { ...item, quantity: 1 }]);
     }
@@ -108,19 +80,35 @@ const Menu = () => {
 
   const placeOrder = async () => {
     try {
-      const orderDetails = cart.map(({ menu_item_id, quantity }) => ({ menu_item_id, quantity }));
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_FRONTEND_API}/order`, { items: orderDetails });
-      alert('Order placed successfully!');
-      setCart([]); // Clear the cart after placing the order
+      const orderDetails = cart.map(({ menu_item_id, quantity, final_price }) => ({
+        menu_item_id,
+        quantity,
+        price: parseFloat(final_price),
+      }));
+      // Get reserved table from IndexedDB
+      const reservedTable = await getReservedTablesFromDB();
+
+      // Send request with or without table_id based on reservation status
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_FRONTEND_API}/order`, {
+        user_id,
+        ...(reservedTable ? { table_id: reservedTable.table_id } : {}),
+        items: orderDetails,
+      });
+
+      if (response.data.success) {
+        alert('Order placed successfully!');
+        setCart([]); // Clear the cart after placing the order
+      } else {
+        alert('Failed to place order. Please try again.');
+      }
     } catch (error) {
-      alert('Failed to place order. Please try again.');
+      alert('Error placing order. Please try again later.');
     }
   };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
-  // Generate category and tag options dynamically
   const categories = ['All', ...new Set(menuItems.map((item) => item.category_name))];
   const tags = ['All', ...new Set(menuItems.flatMap((item) => (item.tags || '').split(',')))];
 
@@ -131,7 +119,6 @@ const Menu = () => {
       {/* Filters */}
       <div className="filters">
         {/* Filter options here */}
-        {/* ... */}
       </div>
 
       {/* Menu Items */}

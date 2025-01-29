@@ -38,15 +38,13 @@ const getMenu = async (req, res) => {
 
 
 const orderFood = async (req, res) => {
-  const { user_id, table_id, items } = req.body; // Ensure table_id is included in the request
+  const { user_id, table_id, items } = req.body;
 
   try {
-    // Validate user_id and table_id
+    // Validate user_id
     const userId = parseInt(user_id, 10);
-    const tableId = parseInt(table_id, 10);
-
-    if (isNaN(userId) || isNaN(tableId)) {
-      return res.status(400).json({ error: "user_id and table_id must be valid numbers" });
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "user_id must be a valid number" });
     }
 
     // Validate items array
@@ -68,18 +66,50 @@ const orderFood = async (req, res) => {
       });
     }
 
+    let tableId = null;
+
+    // If `table_id` is provided, validate it
+    if (table_id !== undefined) {
+      tableId = parseInt(table_id, 10);
+      if (isNaN(tableId)) {
+        return res.status(400).json({ error: "table_id must be a valid number" });
+      }
+
+      // Check if the table is reserved by the user in the ReservedTable table
+      const [reservedTable] = await mysqlPool.query(
+        `SELECT * FROM Tables WHERE id = ? AND user_id = ?`,
+        [tableId, userId]
+      );
+
+      if (reservedTable.length === 0) {
+        return res.status(400).json({
+          error: "The specified id is not reserved by this user",
+        });
+      }
+    } else {
+      // If no `id`, check if the user has any reserved table
+      const [reservedTable] = await mysqlPool.query(
+        `SELECT * FROM Tables WHERE user_id = ?`,
+        [userId]
+      );
+
+      if (reservedTable.length > 0) {
+        tableId = reservedTable[0].table_id; // Automatically associate the user's reserved table
+      }
+    }
+
     // Calculate total cost
     const totalCost = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
 
-    // Create order in MongoDB
+    // Create order in MongoDB (you can also save the order in MySQL if needed)
     const order = new Order({
       user_id: userId,
-      table_id: tableId,
+      table_id: tableId || null, // Set `null` if no table is reserved
       items,
       total_cost: totalCost,
     });
 
-    await order.save();
+    await order.save(); // You might want to insert the order into MySQL instead of MongoDB
 
     res.status(201).json({ success: true, message: "Order placed successfully", order });
   } catch (error) {
@@ -87,6 +117,5 @@ const orderFood = async (req, res) => {
     res.status(500).json({ error: "Error placing order" });
   }
 };
-
 
 module.exports = { getMenu, orderFood };

@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { getReservedTablesFromDB, getTablesFromDB, saveReservedTableInDB, storeTablesInDB } from "@/storage/IndexedDB/table";
+import { getTablesFromDB, saveReservedTableInDB, storeTablesInDB } from "@/storage/IndexedDB/table";
 
 const TableReservationApp = () => {
   const [tables, setTables] = useState(null); // Default to null to prevent mismatches
