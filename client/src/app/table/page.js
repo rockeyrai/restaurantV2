@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { getTablesFromDB, storeTablesInDB } from "@/storage/IndexedDB/table";
+import { getReservedTablesFromDB, getTablesFromDB, saveReservedTableInDB, storeTablesInDB } from "@/storage/IndexedDB/table";
 
 const TableReservationApp = () => {
   const [tables, setTables] = useState(null); // Default to null to prevent mismatches
@@ -23,23 +23,39 @@ const TableReservationApp = () => {
         );
         const fetchedTables = response.data;
         setTables(fetchedTables);
+  
         // Store tables in IndexedDB
         await storeTablesInDB(fetchedTables);
+  
+        // Filter reserved tables and save them in IndexedDB
+        const reservedTables = fetchedTables.filter(
+          (table) => !table.available && table.user_id === userId // Check both conditions
+        );
+        for (const table of reservedTables) {
+          await saveReservedTableInDB(table); // Save only the matching tables
+        }
+  
       } catch (error) {
         console.error("Error fetching tables:", error);
-        toast.error("Unable to fetch table data. Please try again later.");
-        // Try fetching from IndexedDB if API fails
+        toast.error("Unable to fetch table data. Trying to load offline data.");
+  
+        // Fallback to IndexedDB
         const storedTables = await getTablesFromDB();
         if (storedTables.length > 0) {
           setTables(storedTables);
+        } else {
+          toast.error("No offline data available.");
         }
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchTables();
   }, []);
+  
+  
+  
 
   const handleReserve = async (e) => {
     e.preventDefault();
