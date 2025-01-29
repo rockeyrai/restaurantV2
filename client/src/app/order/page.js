@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './Menu.css';
+import { getMenuFromCache, saveMenuToCache } from '@/storage/CacheAPI/menu';
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
@@ -18,24 +19,41 @@ const Menu = () => {
   const [maxPrice, setMaxPrice] = useState(100); // Dynamic max price from items
 
   useEffect(() => {
-    axios
-      .get(`${process.env.NEXT_PUBLIC_FRONTEND_API}/menu`)
-      .then((response) => {
-        const items = response.data.menuItems || [];
-        setMenuItems(items);
-        setFilteredMenuItems(items);
-        setMaxPrice(
-          Math.ceil(
-            Math.max(...items.map((item) => parseFloat(item.final_price || 0)))
-          )
-        );
-        setPriceRange({ min: 0, max: Math.ceil(Math.max(...items.map((item) => parseFloat(item.final_price || 0)))) });
+    const fetchMenuData = async () => {
+      try {
+        // Try to get the menu from cache
+        const cachedMenu = await getMenuFromCache();
+        if (cachedMenu && Array.isArray(cachedMenu)) {
+          console.log("Cached Menu Data:", cachedMenu);
+          setMenuItems(cachedMenu);
+          setFilteredMenuItems(cachedMenu);
+          setMaxPrice(Math.ceil(Math.max(...cachedMenu.map((item) => parseFloat(item.final_price || 0)))));
+          setPriceRange({ min: 0, max: Math.ceil(Math.max(...cachedMenu.map((item) => parseFloat(item.final_price || 0)))) });
+          setLoading(false);
+        } else {
+          // If not found in cache or invalid data, fetch from API
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_FRONTEND_API}/menu`);
+          const items = response.data.menuItems || [];
+  
+          // Set the fetched data to state and cache it
+          setMenuItems(items);
+          setFilteredMenuItems(items);
+          setMaxPrice(Math.ceil(Math.max(...items.map((item) => parseFloat(item.final_price || 0)))));
+          setPriceRange({ min: 0, max: Math.ceil(Math.max(...items.map((item) => parseFloat(item.final_price || 0)))) });
+          
+          // Save to cache
+          await saveMenuToCache(items);
+  
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching menu data:", error);
+        setError("Failed to fetch menu data");
         setLoading(false);
-      })
-      .catch((error) => {
-        setError('Failed to fetch menu data');
-        setLoading(false);
-      });
+      }
+    };
+  
+    fetchMenuData();
   }, []);
 
   useEffect(() => {

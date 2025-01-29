@@ -8,7 +8,7 @@ const Page = () => {
     const fetchData = async () => {
       try {
         const menuData = await axios.get(`${process.env.NEXT_PUBLIC_FRONTEND_API}/menu`);
-        await saveMenuToCache(menuData.data);
+        await saveMenuToCache(menuData.data)
         console.log("Menu data saved to cache:", menuData.data);
       } catch (error) {
         console.error("Error fetching or saving menu data:", error);

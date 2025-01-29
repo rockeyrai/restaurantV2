@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getTablesFromDB, storeTablesInDB } from "@/storage/IndexedDB/table";
 
 const TableReservationApp = () => {
   const [tables, setTables] = useState(null); // Default to null to prevent mismatches
@@ -11,7 +12,6 @@ const TableReservationApp = () => {
   const [tableId, setTableId] = useState("");
   const userId = useSelector((state) => state.user?.userInfo?.user_id);
   const userName = useSelector((state) => state.user?.userInfo?.username);
-
 
   // Fetch table availability
   useEffect(() => {
@@ -21,10 +21,18 @@ const TableReservationApp = () => {
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_FRONTEND_API}/table`
         );
-        setTables(response.data);
+        const fetchedTables = response.data;
+        setTables(fetchedTables);
+        // Store tables in IndexedDB
+        await storeTablesInDB(fetchedTables);
       } catch (error) {
         console.error("Error fetching tables:", error);
         toast.error("Unable to fetch table data. Please try again later.");
+        // Try fetching from IndexedDB if API fails
+        const storedTables = await getTablesFromDB();
+        if (storedTables.length > 0) {
+          setTables(storedTables);
+        }
       } finally {
         setLoading(false);
       }
@@ -59,6 +67,8 @@ const TableReservationApp = () => {
         `${process.env.NEXT_PUBLIC_FRONTEND_API}/table`
       );
       setTables(updatedTables.data);
+      // Update IndexedDB with the latest table data
+      await storeTablesInDB(updatedTables.data);
     } catch (error) {
       toast.error(error.response?.data?.message || "Error reserving table.");
     }
