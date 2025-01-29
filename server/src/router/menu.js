@@ -4,6 +4,6 @@ const sessionMiddleware = require("../middleware/sessionMiddleware");
 const router = express.Router();
 
 router.get("/menu",getMenu) 
-router.post("/order",sessionMiddleware,orderFood)
+router.post("/order",orderFood)
 
 module.exports = router

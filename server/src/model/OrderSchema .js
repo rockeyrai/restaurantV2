@@ -3,7 +3,6 @@ const Schema = mongoose.Schema;
 
 // Orders Schema (for customer orders, linking to the menu items and table in MySQL)
 const OrderSchema = new Schema({
-  order_id: { type: Number, required: true },
   user_id: { type: Number, required: true }, // Change ObjectId to Number
   table_id: { type: Number },  // MySQL table ID (from Tables table)
   items: [{
