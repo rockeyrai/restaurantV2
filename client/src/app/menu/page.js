@@ -23,65 +23,58 @@ const Menu = () => {
   useEffect(() => {
     const fetchMenuData = async () => {
       try {
-        // Try to get the menu from cache
         const cachedMenu = await getMenuFromCache();
-        if (cachedMenu && Array.isArray(cachedMenu)) {
-          console.log("Cached Menu Data:", cachedMenu);
+        console.log("Cached menu retrieved:", cachedMenu);
+    
+        // Access the menuData array if cachedMenu is valid
+        if (cachedMenu && Array.isArray(cachedMenu)){
+          console.log("Using cached menu data:", cachedMenu);
+    
           setMenuItems(cachedMenu);
           setFilteredMenuItems(cachedMenu);
           setMaxPrice(
             Math.ceil(
-              Math.max(
-                ...cachedMenu.map((item) => parseFloat(item.final_price || 0))
-              )
+              Math.max(...cachedMenu.map((item) => parseFloat(item.final_price || 0)))
             )
           );
           setPriceRange({
             min: 0,
             max: Math.ceil(
-              Math.max(
-                ...cachedMenu.map((item) => parseFloat(item.final_price || 0))
-              )
+              Math.max(...cachedMenu.map((item) => parseFloat(item.final_price || 0)))
             ),
           });
           setLoading(false);
-        } else {
-          // If not found in cache or invalid data, fetch from API
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_FRONTEND_API}/menu`
-          );
-          const items = response.data.menuItems || [];
-
-          // Set the fetched data to state and cache it
-          setMenuItems(items);
-          setFilteredMenuItems(items);
-          setMaxPrice(
-            Math.ceil(
-              Math.max(
-                ...items.map((item) => parseFloat(item.final_price || 0))
-              )
-            )
-          );
-          setPriceRange({
-            min: 0,
-            max: Math.ceil(
-              Math.max(
-                ...items.map((item) => parseFloat(item.final_price || 0))
-              )
-            ),
-          });
-
-          // Save to cache
-          await saveMenuToCache(items);
-
-          setLoading(false);
-        }
+          return;
+        }else{ 
+    
+        console.log("Cache miss or invalid data. Fetching from API...");
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_FRONTEND_API}/menu`);
+        const items = response.data.menuItems || [];
+        setMenuItems(items);
+        setFilteredMenuItems(items);
+        setMaxPrice(
+          Math.ceil(
+            Math.max(...items.map((item) => parseFloat(item.final_price || 0)))
+          )
+        );
+        setPriceRange({
+          min: 0,
+          max: Math.ceil(
+            Math.max(...items.map((item) => parseFloat(item.final_price || 0)))
+          ),
+        });
+    
+        // Save data with timestamp to cache
+        await saveMenuToCache(items);
+        console.log("API data saved to cache:", items);
+        setLoading(false);
+      }
       } catch (error) {
         console.error("Error fetching menu data:", error);
         setError("Failed to fetch menu data");
         setLoading(false);
       }
-    };
+    };    
 
     fetchMenuData();
   }, []);
