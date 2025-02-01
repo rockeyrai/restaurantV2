@@ -7,6 +7,7 @@ const { connectMySql, mysqlPool } = require("./database/MySql");
 const userRouter = require("./router/user");
 const menuRouter = require("./router/menu");
 const tableRouter = require("./router/table");
+const orderRouter = require("./router/order");
 require("dotenv").config();
 
 // Import socket.io and http
@@ -42,6 +43,7 @@ app.use(express.raw({ type: "application/json" }));
 app.use(userRouter);
 app.use(menuRouter);
 app.use(tableRouter);
+app.use(orderRouter)
 
 // Socket.io connection
 io.on("connection", (socket) => {

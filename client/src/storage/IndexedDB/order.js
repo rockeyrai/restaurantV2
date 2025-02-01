@@ -1,11 +1,10 @@
-// OrderDB.js
 import { openDB } from "idb";
 
 const ORDER_DB_NAME = "OrderDB";
 const ORDER_STORE_NAME = "orders";
 
-// Initialize IndexedDB for order data
-const initOrderDB = async () => {
+// Initialize the IndexedDB
+export const initOrderDB = async () => {
   return await openDB(ORDER_DB_NAME, 1, {
     upgrade(db) {
       if (!db.objectStoreNames.contains(ORDER_STORE_NAME)) {
@@ -15,20 +14,20 @@ const initOrderDB = async () => {
   });
 };
 
-// Save order data to IndexedDB
-export const saveOrderData = async (orderData) => {
+// Add an order to IndexedDB
+export const addOrderToIndexedDB = async (order) => {
   const db = await initOrderDB();
-  await db.put(ORDER_STORE_NAME, orderData);
+  await db.put(ORDER_STORE_NAME, order);
 };
 
-// Retrieve all orders from IndexedDB
-export const getAllOrders = async () => {
+// Get all orders from IndexedDB
+export const getAllOrdersFromIndexedDB = async () => {
   const db = await initOrderDB();
   return await db.getAll(ORDER_STORE_NAME);
 };
 
-// Clear all order data from IndexedDB
-export const clearOrderData = async () => {
+// Delete an order from IndexedDB
+export const deleteOrderFromIndexedDB = async (id) => {
   const db = await initOrderDB();
-  await db.clear(ORDER_STORE_NAME);
+  await db.delete(ORDER_STORE_NAME, id);
 };
