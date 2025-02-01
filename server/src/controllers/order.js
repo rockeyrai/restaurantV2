@@ -1,3 +1,4 @@
+const { mysqlPool } = require("../database/MySql");
 const Order = require("../model/OrderSchema ");
 
   const getAllOrder = async (req, res) => {
@@ -42,14 +43,36 @@ const Order = require("../model/OrderSchema ");
 
 const getOrdersByUserId = async (req, res) => {
   try {
-    const { user_id } = req.params; // Extract user_id from the request parameters
+    const { user_id } = req.params;
     if (!user_id) {
       return res.status(400).json({ error: "User ID is required" });
     }
 
-    // Find orders where the user_id matches
+    // Fetch orders for the given user_id
     const orders = await Order.find({ user_id: Number(user_id) });
-    res.json(orders);
+
+    // Extract unique menu_item_ids from the orders
+    const menuItemIds = [...new Set(orders.flatMap(order => order.items.map(item => item.menu_item_id)))];
+
+    // Fetch menu details from MySQL
+    const [menuItems] = await mysqlPool.query(
+      "SELECT menu_item_id, name, description, price FROM Menu WHERE menu_item_id IN (?)",
+      [menuItemIds]
+    );
+
+    // Map menu items by menu_item_id for easy lookup
+    const menuItemMap = Object.fromEntries(menuItems.map(item => [item.menu_item_id, item]));
+
+    // Add food details to the order data
+    const ordersWithDetails = orders.map(order => ({
+      ...order._doc,
+      items: order.items.map(item => ({
+        ...item._doc,
+        food: menuItemMap[item.menu_item_id] || null, // Add food details
+      })),
+    }));
+
+    res.json(ordersWithDetails);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

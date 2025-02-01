@@ -31,3 +31,5 @@ export const deleteOrderFromIndexedDB = async (id) => {
   const db = await initOrderDB();
   await db.delete(ORDER_STORE_NAME, id);
 };
+
+// arko version ma ramro sanga save garnu in cache or cooke
